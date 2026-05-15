@@ -10,144 +10,176 @@ interface QuizScreenProps {
 }
 
 export const QuizScreen: React.FC<QuizScreenProps> = ({ questions, mode, onQuizEnd, onExit }) => {
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [score, setScore] = useState(0);
-  const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
-  const [isRevealed, setIsRevealed] = useState(false); // Состояние "показан ответ"
+  const [currentIndex, setCurrentIndex] = useState(0);
+  // Храним ответы: { [index вопроса]: ID выбранного варианта }
+  const [userAnswers, setUserAnswers] = useState<Record<number, number | null>>({});
+  // Храним, для каких вопросов был нажат "Показать ответ"
+  const [revealedIndices, setRevealedIndices] = useState<Set<number>>(new Set());
 
-  if (questions.length === 0) return null;
-
-  const currentQuestion = questions[currentQuestionIndex];
+  const isTestMode = mode === 'test';
+  const currentQuestion = questions[currentIndex];
   const labels = ['А', 'Б', 'В', 'Г'];
+  const selectedOptionId = userAnswers[currentIndex] || null;
+  const isRevealed = revealedIndices.has(currentIndex);
 
-  const handleSelect = (id: number) => {
-    if (isRevealed) return; // Запрещаем менять выбор, если ответ уже открыт
-    setSelectedOptionId(id);
+  const handleSelect = (optionId: number) => {
+    if (isRevealed) return;
+    setUserAnswers(prev => ({ ...prev, [currentIndex]: optionId }));
   };
 
-  const handleNext = () => {
-    const correctOption = currentQuestion.options.find(o => o.isCorrect);
-    const isCorrect = selectedOptionId === correctOption?.id;
-    
-    // Если пользователь сам ответил правильно до открытия или просто переходит
-    const newScore = isCorrect ? score + 1 : score;
+  const toggleReveal = () => {
+    setRevealedIndices(prev => new Set(prev).add(currentIndex));
+  };
 
-    if (currentQuestionIndex + 1 < questions.length) {
-      setScore(newScore);
-      setCurrentQuestionIndex(prev => prev + 1);
-      setSelectedOptionId(null);
-      setIsRevealed(false); // Сбрасываем для следующего вопроса
-    } else {
-      onQuizEnd(newScore);
+  const goToNext = () => {
+    if (currentIndex + 1 < questions.length) {
+      setCurrentIndex(prev => prev + 1);
+    } else if (isTestMode) {
+      // Считаем финальный счет только при завершении
+      const score = questions.reduce((acc, q, idx) => {
+        const answerId = userAnswers[idx];
+        const isCorrect = q.options.find(o => o.id === answerId)?.isCorrect;
+        return isCorrect ? acc + 1 : acc;
+      }, 0);
+      onQuizEnd(score);
     }
   };
 
-  return (
-    <Box className="max-w-3xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-sm border border-gray-100">
-      {/* Текст вопроса */}
-      <Typography variant="h5" className="mb-8 text-gray-800 leading-relaxed font-medium">
-        {currentQuestion.text}
-      </Typography>
+  const goToPrev = () => {
+    if (currentIndex > 0) setCurrentIndex(prev => prev - 1);
+  };
 
-      {/* Список вариантов ответов */}
-      <Box className="space-y-4 mb-10">
-        {currentQuestion.options.map((option, index) => {
-          const isCorrect = option.isCorrect;
-          return (
+  return (
+    <Box className="max-w-4xl mx-auto mt-6 p-6">
+      
+      {/* 1. ПАГИНАЦИЯ (Только для режима теста) */}
+      {isTestMode && (
+        <Box className="mb-8">
+          <Box className="flex flex-wrap gap-2 mb-4">
+            {questions.map((_, idx) => {
+              const isAnswered = userAnswers[idx] !== undefined && userAnswers[idx] !== null;
+              const isActive = currentIndex === idx;
+              
+              return (
+                <Box
+                  key={idx}
+                  onClick={() => setCurrentIndex(idx)}
+                  className={`
+                    w-10 h-10 flex items-center justify-center border-2 cursor-pointer transition-all font-medium
+                    ${isActive ? 'bg-[#ff5252] border-[#ff5252] text-white shadow-md' : 
+                      isAnswered ? 'border-[#4caf50] text-[#4caf50]' : 'border-gray-300 text-gray-500'}
+                    hover:border-red-400
+                  `}
+                >
+                  {idx + 1}
+                </Box>
+              );
+            })}
+          </Box>
+          <Box className="flex justify-end">
+             <Box className="border-2 border-[#4caf50] px-4 py-1 text-[#4caf50] font-medium">
+                Завдання {currentIndex + 1} з {questions.length}
+             </Box>
+          </Box>
+          <Divider className="mt-4" />
+        </Box>
+      )}
+
+      {/* 2. ВОПРОС И ВАРИАНТЫ */}
+      <Box className="bg-white p-6 rounded-lg">
+        <Typography variant="h5" className="mb-8 text-gray-800 leading-relaxed">
+          {currentQuestion.text}
+        </Typography>
+
+        <Box className="space-y-4 mb-10">
+          {currentQuestion.options.map((option, index) => (
             <Box key={option.id} className="flex items-start gap-4">
               <Box className={`
-                px-3 py-1 font-bold rounded min-w-[32px] text-center transition-colors
-                ${isRevealed && isCorrect ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-700'}
+                px-3 py-1 font-bold rounded min-w-[32px] text-center
+                ${isRevealed && option.isCorrect ? 'bg-green-500 text-white' : 'bg-gray-100'}
               `}>
                 {labels[index]}
               </Box>
-              <Typography variant="body1" className={`pt-1 text-lg ${isRevealed && isCorrect ? 'text-green-700 font-medium' : 'text-gray-700'}`}>
+              <Typography className={`pt-1 text-lg ${isRevealed && option.isCorrect ? 'text-green-600 font-bold' : ''}`}>
                 {option.text}
               </Typography>
             </Box>
-          );
-        })}
-      </Box>
-
-      {/* Сетка выбора ответа */}
-      <Box className="mb-10">
-        <Typography variant="body2" className="mb-3 text-gray-600 font-medium">
-          Позначте відповіді:
-        </Typography>
-        <Box className="flex gap-3">
-          {currentQuestion.options.map((option, index) => {
-            const isSelected = selectedOptionId === option.id;
-            const isCorrect = option.isCorrect;
-            
-            // Логика цвета рамки
-            let borderColor = 'border-gray-300';
-            if (isSelected) borderColor = 'border-blue-600';
-            if (isRevealed && isCorrect) borderColor = 'border-green-500';
-
-            return (
-              <Box key={option.id} className="flex flex-col items-center">
-                <Typography className={`font-bold mb-1 ${isRevealed && isCorrect ? 'text-green-600' : 'text-gray-800'}`}>
-                  {labels[index]}
-                </Typography>
-                <Box 
-                  onClick={() => handleSelect(option.id)}
-                  className={`
-                    w-12 h-12 border-2 flex items-center justify-center cursor-pointer transition-all
-                    ${borderColor} 
-                    ${isRevealed && isCorrect ? 'bg-green-50' : isSelected ? 'bg-blue-50' : 'bg-white'}
-                    rounded-md
-                  `}
-                >
-                  {/* Икс или Квадратик при выборе */}
-                  {isSelected && (
-                    <Box className={`w-7 h-7 rounded-sm ${isRevealed && !isCorrect ? 'bg-red-400' : 'bg-blue-600'}`} />
-                  )}
-                  {/* Если ответ открыт и это правильный, но не выбранный — можно добавить точку или оставить просто рамку */}
-                  {isRevealed && isCorrect && !isSelected && (
-                    <Box className="w-3 h-3 bg-green-500 rounded-full" />
-                  )}
-                </Box>
-              </Box>
-            );
-          })}
+          ))}
         </Box>
-      </Box>
 
-      <Divider className="mb-8" />
+        {/* 3. СЕТКА ВЫБОРА */}
+        <Box className="mb-10">
+          <Typography variant="body2" className="mb-3 text-gray-600">Позначте відповіді:</Typography>
+          <Box className="flex gap-3">
+            {currentQuestion.options.map((option, index) => {
+              const isSelected = selectedOptionId === option.id;
+              const isCorrect = option.isCorrect;
+              return (
+                <Box key={option.id} className="flex flex-col items-center">
+                  <Typography className="font-bold mb-1">{labels[index]}</Typography>
+                  <Box 
+                    onClick={() => handleSelect(option.id)}
+                    className={`
+                      w-12 h-12 border-2 flex items-center justify-center cursor-pointer
+                      ${isSelected ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}
+                      ${isRevealed && isCorrect ? 'border-green-500 bg-green-50' : ''}
+                    `}
+                  >
+                    {isSelected && <Box className={`w-7 h-7 ${isRevealed && !isCorrect ? 'bg-red-400' : 'bg-blue-600'}`} />}
+                    {isRevealed && isCorrect && !isSelected && <Box className="w-3 h-3 bg-green-500 rounded-full" />}
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
+        </Box>
 
-      {/* Кнопки управления */}
-      <Box className="grid grid-cols-3 gap-4">
-        <Button 
-          variant="contained" 
-          className="bg-[#4caf50] hover:bg-[#43a047] capitalize py-3 text-lg shadow-none"
-          onClick={() => {
-            setSelectedOptionId(null);
-            handleNext();
-          }}
-        >
-          Пропустити
-        </Button>
+        <Divider className="mb-8" />
 
-        <Button 
-          variant="outlined" 
-          disabled={isRevealed}
-          className="border-blue-600 text-blue-600 hover:bg-blue-50 capitalize py-3 text-lg font-medium"
-          onClick={() => setIsRevealed(true)}
-        >
-          Показати відповідь
-        </Button>
+        {/* 4. КНОПКИ НАВИГАЦИИ */}
+        <Box className="flex flex-wrap gap-4 justify-between">
+          <Box className="flex gap-2">
+            {isTestMode && (
+              <Button 
+                variant="outlined"
+                disabled={currentIndex === 0}
+                className="border-gray-400 text-gray-600 px-6 py-2"
+                onClick={goToPrev}
+              >
+                Попереднє
+              </Button>
+            )}
+            <Button 
+              variant="contained" 
+              className="bg-[#4caf50] hover:bg-[#43a047] px-6 py-2 shadow-none capitalize"
+              onClick={() => {
+                if (!isRevealed) setUserAnswers(prev => ({ ...prev, [currentIndex]: null }));
+                goToNext();
+              }}
+            >
+              Пропустити
+            </Button>
+          </Box>
 
-        <Button 
-          variant="contained" 
-          disabled={selectedOptionId === null && !isRevealed}
-          className={`
-            ${selectedOptionId === null && !isRevealed ? 'bg-gray-300' : 'bg-[#c62828] hover:bg-[#b71c1c]'} 
-            capitalize py-3 text-lg shadow-none text-white
-          `}
-          onClick={handleNext}
-        >
-          Наступне
-        </Button>
+          <Box className="flex gap-2">
+            <Button 
+              variant="outlined" 
+              disabled={isRevealed}
+              className="border-blue-600 text-blue-600 px-6 py-2 capitalize"
+              onClick={toggleReveal}
+            >
+              Показати відповідь
+            </Button>
+
+            <Button 
+              variant="contained" 
+              className="bg-[#c62828] hover:bg-[#b71c1c] px-8 py-2 shadow-none capitalize"
+              onClick={goToNext}
+            >
+              {currentIndex + 1 === questions.length && isTestMode ? 'Завершити' : 'Наступне'}
+            </Button>
+          </Box>
+        </Box>
       </Box>
     </Box>
   );
