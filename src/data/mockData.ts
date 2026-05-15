@@ -1,21 +1,62 @@
-import { Category, Topic, CategoryWithTopics } from '../types/quiz';
+import { Question } from '../types/quiz';
 
-// Имитация таблицы "categories" в БД
-const mockCategories: Category[] = [
-  { id: 1, title: 'Программирование', description: 'Вопросы по веб-разработке и языкам программирования' },
-  { id: 2, title: 'Дизайн', description: 'Интерфейсы, колористика и UX/UI практики' }
+const mockQuestions: Question[] = [
+  // JavaScript Questions (Topic 101)
+  {
+    id: 1,
+    topicId: 101,
+    text: 'Which company developed JavaScript?',
+    options: [
+      { id: 1, text: 'Netscape', isCorrect: true },
+      { id: 2, text: 'Microsoft', isCorrect: false },
+      { id: 3, text: 'Sun Microsystems', isCorrect: false },
+      { id: 4, text: 'Oracle', isCorrect: false }
+    ]
+  },
+  {
+    id: 2,
+    topicId: 101,
+    text: 'Which of the following is NOT a JavaScript data type?',
+    options: [
+      { id: 5, text: 'String', isCorrect: false },
+      { id: 6, text: 'Boolean', isCorrect: false },
+      { id: 7, text: 'Float', isCorrect: true },
+      { id: 8, text: 'Undefined', isCorrect: false }
+    ]
+  },
+  // React Questions (Topic 102)
+  {
+    id: 3,
+    topicId: 102,
+    text: 'What is the purpose of React Virtual DOM?',
+    options: [
+      { id: 9, text: 'To directly manipulate the browser HTML', isCorrect: false },
+      { id: 10, text: 'To optimize rendering performance by minimizing real DOM updates', isCorrect: true },
+      { id: 11, text: 'To store data securely in the cloud', isCorrect: false },
+      { id: 12, text: 'To handle backend routing', isCorrect: false }
+    ]
+  }
 ];
 
-// Имитация таблицы "topics" в БД с foreign key (categoryId)
-const mockTopics: Topic[] = [
-  { id: 101, categoryId: 1, title: 'JavaScript' },
-  { id: 102, categoryId: 1, title: 'React & MUI' },
-  { id: 103, categoryId: 1, title: 'TypeScript' },
-  { id: 201, categoryId: 2, title: 'UX Аналитика' },
-  { id: 202, categoryId: 2, title: 'Работа в Figma' }
-];
+// Service functions to simulate DB queries
+export const quizApiExtended = {
+  // Simulates getting questions filtered by topic or category
+  getQuestions: async (topicId: number | null, categoryId: number | null): Promise<Question[]> => {
+    // Artificial delay for DB simulation
+    await new Promise(resolve => setTimeout(resolve, 400));
+    
+    if (topicId) {
+      return mockQuestions.filter(q => q.topicId === topicId);
+    }
+    if (categoryId) {
+      // If category chosen, get all questions for topics inside that category
+      const targetTopics = mockTopics.filter(t => t.categoryId === categoryId).map(t => t.id);
+      return mockQuestions.filter(q => targetTopics.includes(q.topicId));
+    }
+    return mockQuestions; // fallback
+  }
+};
 
-// Функция, которая собирает данные вместе (как это делал бы SQL-запрос с JOIN)
 export const getCategoriesWithTopics = (): CategoryWithTopics[] => {
   return mockCategories.map(category => ({
     ...category,

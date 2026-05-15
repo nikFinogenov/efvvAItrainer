@@ -3,14 +3,22 @@ import { Container, Grid, Typography, Box, CssBaseline, CircularProgress } from 
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { CategoryCard } from './components/CategoryCard';
-import { CategoryWithTopics } from './types/quiz';
+import { QuizScreen } from './components/QuizScreen';
+import { ResultScreen } from './components/ResultScreen';
+import { CategoryWithTopics, Question, QuizSession } from './types/quiz';
 import { quizApi } from './services/api';
+import { quizApiExtended } from './data/mockData';
 
 const App: React.FC = () => {
   const [categories, setCategories] = useState<CategoryWithTopics[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  
+  // App navigation state
+  const [currentSession, setCurrentSession] = useState<QuizSession | null>(null);
+  const [activeQuestions, setActiveQuestions] = useState<Question[]>([]);
+  const [quizLoading, setQuizLoading] = useState<boolean>(false);
+  const [finalScore, setFinalScore] = useState<number | null>(null);
 
-  // Загружаем данные при старте приложения
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -18,17 +26,38 @@ const App: React.FC = () => {
         const data = await quizApi.getCategories();
         setCategories(data);
       } catch (error) {
-        console.error("Ошибка при загрузке категорий:", error);
+        console.error("Error loading categories:", error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchCategories();
   }, []);
 
-  const handleSelectMode = (mode: 'test' | 'infinite', topicId: number | null) => {
-    alert(`Режим: ${mode}. ID Темы: ${topicId || 'Все темы категории'}`);
+  const handleSelectMode = async (mode: 'test' | 'infinite', topicId: number | null, categoryId: number = 1) => {
+    try {
+      setQuizLoading(true);
+      setCurrentSession({ mode, topicId, categoryId });
+      setFinalScore(null);
+      
+      // Fetch matching questions as if calling a database route
+      const questions = await quizApiExtended.getQuestions(topicId, topicId ? null : categoryId);
+      setActiveQuestions(questions);
+    } catch (e) {
+      console.error("Failed to load questions", e);
+    } finally {
+      setQuizLoading(false);
+    }
+  };
+
+  const handleQuizEnd = (score: number) => {
+    setFinalScore(score);
+  };
+
+  const handleExitQuiz = () => {
+    setCurrentSession(null);
+    setActiveQuestions([]);
+    setFinalScore(null);
   };
 
   return (
@@ -36,25 +65,44 @@ const App: React.FC = () => {
       <CssBaseline />
       <Header />
       
-      <Container component="main" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
-        <Typography variant="h3" component="h1" align="center" gutterBottom fontWeight="bold">
-          Категории Квизов
-        </Typography>
-        
-        {loading ? (
-          // Пока данные "из БД" грузятся, показываем красивый спиннер от MUI
+      <Container component="main" sx={{ mt: 6, mb: 6, flexGrow: 1 }}>
+        {loading || quizLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
             <CircularProgress size={60} />
           </Box>
+        ) : finalScore !== null ? (
+          // 1. SHOW RESULT SCREEN
+          <ResultScreen score={finalScore} totalQuestions={activeQuestions.length} onRestart={handleExitQuiz} />
+        ) : currentSession ? (
+          // 2. SHOW GAME SCREEN
+          <QuizScreen 
+            questions={activeQuestions} 
+            mode={currentSession.mode} 
+            onQuizEnd={handleQuizEnd} 
+            onExit={handleExitQuiz} 
+          />
         ) : (
-          <Grid container spacing={3} justifyContent="center">
-            {categories.map((category) => (
-              <Grid item key={category.id} xs={12} sm={6} md={4}>
-                {/* Не забудь обновить типы в самом CategoryCard (заменить string | null на number | null для топиков) */}
-                <CategoryCard category={category} onSelectMode={handleSelectMode} />
-              </Grid>
-            ))}
-          </Grid>
+          // 3. SHOW DEFAULT MAIN CATEGORIES SCREEN
+          <>
+            <Typography variant="h3" component="h1" align="center" gutterBottom fontWeight="bold">
+              Quiz Categories
+            </Typography>
+            <Typography variant="h6" align="center" color="text.secondary" sx={{ mb: 6 }}>
+              Hover over a category to choose your game mode or a specific topic
+            </Typography>
+
+            <Grid container spacing={4} justifyContent="center">
+              {categories.map((category) => (
+                <Grid item key={category.id}>
+                  {/* Passing category.id dynamically here */}
+                  <CategoryCard 
+                    category={category} 
+                    onSelectMode={(mode, topicId) => handleSelectMode(mode, topicId, category.id)} 
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          </>
         )}
       </Container>
 

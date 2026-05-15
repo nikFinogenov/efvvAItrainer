@@ -1,73 +1,87 @@
 import React from 'react';
 import { Card, CardContent, Typography, Button, Stack, Box, Chip } from '@mui/material';
-import { Category, Topic } from '../types/quiz';
+import { CategoryWithTopics } from '../types/quiz';
 
 interface CategoryCardProps {
-  category: Category;
-  onSelectMode: (mode: 'test' | 'infinite', topicId: string | null) => void;
+  category: CategoryWithTopics;
+  onSelectMode: (mode: 'test' | 'infinite', topicId: number | null) => void;
 }
 
 export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onSelectMode }) => {
   return (
     <Card 
       sx={{ 
-        height: 280, 
+        width: 340,        // Fixed width for all cards
+        height: 320,       // Fixed height for all cards
         position: 'relative', 
         overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
         cursor: 'pointer',
-        '&:hover .hover-overlay': { transform: 'translateY(0)' } // Эффект выезжания при ховере
+        boxShadow: 3,
+        borderRadius: 2,
+        '&:hover .hover-overlay': { transform: 'translateY(0)' }
       }}
     >
-      {/* Основной контент карточки (виден изначально) */}
-      <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      {/* Main Content (Visible by default) */}
+      <CardContent 
+        sx={{ 
+          flexGrow: 1, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          justifyContent: 'space-between',
+          p: 3
+        }}
+      >
         <Box>
-          <Typography variant="h5" component="div" gutterBottom>
+          <Typography variant="h5" component="div" gutterBottom fontWeight="bold">
             {category.title}
           </Typography>
           <Typography variant="body2" color="text.secondary">
             {category.description}
           </Typography>
         </Box>
-        <Typography variant="caption" color="text.disabled">
-          Доступно тем: {category.topics.length}
+        
+        <Typography variant="caption" color="text.disabled" fontWeight="medium">
+          Topics available: {category.topics.length}
         </Typography>
       </CardContent>
 
-      {/* Оверлей при ховере */}
+      {/* Hover Overlay */}
       <Box
         className="hover-overlay"
         sx={{
           position: 'absolute',
           top: 0, left: 0, right: 0, bottom: 0,
-          bgcolor: 'rgba(255, 255, 255, 0.95)',
+          bgcolor: 'rgba(255, 255, 255, 0.98)',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
-          p: 2,
-          transition: 'transform 0.3s ease-in-out',
-          transform: 'translateY(100%)', // Изначально спрятан внизу
+          p: 3,
+          transition: 'transform 0.25s ease-in-out',
+          transform: 'translateY(100%)',
+          zIndex: 2
         }}
       >
         <Typography variant="subtitle1" textAlign="center" fontWeight="bold" gutterBottom>
-          Выберите режим для всей категории:
+          Select category mode:
         </Typography>
         
-        <Stack direction="row" spacing={1} justifyContent="center" sx={{ mb: 2 }}>
+        <Stack direction="row" spacing={1} justifyContent="center" sx={{ mb: 3 }}>
           <Button variant="contained" size="small" onClick={() => onSelectMode('test', null)}>
-            Пройти тест
+            Take Test
           </Button>
           <Button variant="outlined" size="small" color="secondary" onClick={() => onSelectMode('infinite', null)}>
-            Бесконечный
+            Infinite
           </Button>
         </Stack>
 
-        <Typography variant="subtitle2" textAlign="center" sx={{ mt: 1, mb: 1 }}>
-          Или выберите конкретную тему:
+        <Typography variant="subtitle2" textAlign="center" sx={{ mb: 1 }} color="text.secondary">
+          Or choose a specific topic:
         </Typography>
 
-        {/* Список тем в виде кликабельных чипсов */}
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'center' }}>
-          {category.topics.map((topic: Topic) => (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'center', maxHeight: 120, overflowY: 'auto', p: 0.5 }}>
+          {category.topics.map((topic) => (
             <Chip 
               key={topic.id} 
               label={topic.title} 

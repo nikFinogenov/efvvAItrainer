@@ -1,18 +1,35 @@
-// Тема (например: JavaScript). В БД это отдельная таблица.
 export interface Topic {
-  id: number;          # Первичный ключ (Primary Key) в БД
-  categoryId: number;  # Внешний ключ (Foreign Key) для связи с категорией
+  id: number;          // Primary Key in DB
+  categoryId: number;  // Foreign Key linking to Category
   title: string;
 }
 
-// Категория (например: Программирование)
 export interface Category {
-  id: number;          # Первичный ключ (Primary Key)
+  id: number;          // Primary Key
   title: string;
   description: string;
 }
 
-// Специальный тип для интерфейса, где нам нужны категории сразу со своими темами
+// ⚠️ MAKE SURE THIS IS EXPORTED ⚠️
 export interface CategoryWithTopics extends Category {
   topics: Topic[];
+}
+
+export interface AnswerOption {
+  id: number;
+  text: string;
+  isCorrect: boolean;
+}
+
+export interface Question {
+  id: number;
+  topicId: number;    // Foreign Key linking to Topic
+  text: string;
+  options: AnswerOption[];
+}
+
+export interface QuizSession {
+  mode: 'test' | 'infinite';
+  topicId: number | null;
+  categoryId: number | null;
 }
