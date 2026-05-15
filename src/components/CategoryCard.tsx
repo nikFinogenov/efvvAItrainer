@@ -1,98 +1,70 @@
 import React from 'react';
-import { Card, CardContent, Typography, Button, Stack, Box, Chip } from '@mui/material';
-import { CategoryWithTopics } from '../types/quiz';
+import { Card, CardContent, Typography, Button, Box, Chip, Divider } from '@mui/material';
+import { CategoryWithTopics, Mode } from '../types/test';
+import SchoolIcon from '@mui/icons-material/School';
 
 interface CategoryCardProps {
   category: CategoryWithTopics;
-  onSelectMode: (mode: 'test' | 'infinite', topicId: number | null) => void;
+  onSelectMode: (mode: Mode, targetId: number | null) => void;
 }
 
 export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onSelectMode }) => {
   return (
     <Card 
-      sx={{ 
-        width: 340,        // Fixed width for all cards
-        height: 320,       // Fixed height for all cards
-        position: 'relative', 
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        cursor: 'pointer',
-        boxShadow: 3,
-        borderRadius: 2,
-        '&:hover .hover-overlay': { transform: 'translateY(0)' }
-      }}
+      className="w-full max-w-sm min-h-95 flex flex-col justify-between rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 bg-white group"
     >
-      {/* Main Content (Visible by default) */}
-      <CardContent 
-        sx={{ 
-          flexGrow: 1, 
-          display: 'flex', 
-          flexDirection: 'column', 
-          justifyContent: 'space-between',
-          p: 3
-        }}
-      >
-        <Box>
-          <Typography variant="h5" component="div" gutterBottom fontWeight="bold">
-            {category.title}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {category.description}
-          </Typography>
+      <CardContent className="grow p-6 flex flex-col">
+        {/* Заголовок категории */}
+        <Box className="flex items-start gap-3 mb-4">
+          <Box className="p-2.5 bg-blue-50 rounded-xl text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300">
+            <SchoolIcon />
+          </Box>
+          <Box>
+            <Typography variant="h6" className="font-bold text-gray-800 leading-snug">
+              {category.title}
+            </Typography>
+            <Typography variant="caption" className="text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-md">
+              Вага в іспиті: {category.description}%
+            </Typography>
+          </Box>
         </Box>
-        
-        <Typography variant="caption" color="text.disabled" fontWeight="medium">
-          Topics available: {category.topics.length}
-        </Typography>
-      </CardContent>
 
-      {/* Hover Overlay */}
-      <Box
-        className="hover-overlay"
-        sx={{
-          position: 'absolute',
-          top: 0, left: 0, right: 0, bottom: 0,
-          bgcolor: 'rgba(255, 255, 255, 0.98)',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          p: 3,
-          transition: 'transform 0.25s ease-in-out',
-          transform: 'translateY(100%)',
-          zIndex: 2
-        }}
-      >
-        <Typography variant="subtitle1" textAlign="center" fontWeight="bold" gutterBottom>
-          Select category mode:
+        <Divider className="my-2 opacity-50" />
+
+        {/* СПИСОК ТОПИКОВ (ЧИПСЫ) */}
+        <Typography variant="subtitle2" className="text-gray-400 font-bold uppercase tracking-wider text-[11px] mb-2 mt-2">
+          Тренажер по топіках:
         </Typography>
         
-        <Stack direction="row" spacing={1} justifyContent="center" sx={{ mb: 3 }}>
-          <Button variant="contained" size="small" onClick={() => onSelectMode('test', null)}>
-            Take Test
-          </Button>
-          <Button variant="outlined" size="small" color="secondary" onClick={() => onSelectMode('infinite', null)}>
-            Infinite
-          </Button>
-        </Stack>
-
-        <Typography variant="subtitle2" textAlign="center" sx={{ mb: 1 }} color="text.secondary">
-          Or choose a specific topic:
-        </Typography>
-
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'center', maxHeight: 120, overflowY: 'auto', p: 0.5 }}>
+        <Box className="flex flex-wrap gap-1.5 overflow-y-auto max-h-35 pr-1 grow content-start">
           {category.topics.map((topic) => (
             <Chip 
               key={topic.id} 
               label={topic.title} 
               clickable 
-              onClick={() => onSelectMode('test', topic.id)}
+              // ✅ Передаем TopicInfinite вместо старого 'infinite'/'test'
+              onClick={() => onSelectMode('TopicInfinite', topic.id)} 
               color="primary"
               variant="outlined"
               size="small"
+              className="hover:bg-blue-50 text-xs py-1 transition-colors border-gray-200 text-gray-700"
             />
           ))}
         </Box>
+      </CardContent>
+
+      {/* КНОПКА КАТЕГОРИИ */}
+      <Box className="p-6 pt-0">
+        <Button 
+          variant="contained" 
+          fullWidth
+          size="large"
+          // ✅ Передаем CategoryInfinite для тренировки по всей категории
+          onClick={() => onSelectMode('CategoryInfinite', category.id)}
+          className="bg-gray-900 hover:bg-blue-600 text-white font-bold py-3 rounded-xl shadow-none capitalize transition-all duration-300"
+        >
+          Тренажер категорії
+        </Button>
       </Box>
     </Card>
   );

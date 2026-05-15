@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { AppBar, Toolbar, Typography, IconButton, Menu, MenuItem, Box } from '@mui/material';
+import { AppBar, Toolbar, Typography, IconButton, Menu, MenuItem, Box, Divider } from '@mui/material';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 
-export const Header: React.FC = () => {
-  // Состояние для открытия/закрытия меню аккаунта
+interface HeaderProps {
+  onHomeClick: () => void; // Проп для возврата домой
+}
+
+export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -15,34 +18,37 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <AppBar position="static">
+    <AppBar position="static" className="bg-[#1976d2] shadow-md">
       <Toolbar>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          Quiz Master
+        {/* Кликабельное название */}
+        <Typography 
+          variant="h6" 
+          component="div" 
+          onClick={onHomeClick}
+          className="grow cursor-pointer select-none font-bold tracking-[0.5px] hover:opacity-80 transition-opacity"
+        >
+          EFVV Master
         </Typography>
+
         <Box>
           <IconButton
             size="large"
-            aria-label="account of current user"
-            aria-controls="menu-appbar"
-            aria-haspopup="true"
             onClick={handleMenuOpen}
             color="inherit"
           >
             <AccountCircle />
           </IconButton>
           <Menu
-            id="menu-appbar"
             anchorEl={anchorEl}
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            keepMounted
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}
             open={Boolean(anchorEl)}
             onClose={handleMenuClose}
           >
-            <MenuItem onClick={handleMenuClose}>Мой Профиль</MenuItem>
-            <MenuItem onClick={handleMenuClose}>Настройки</MenuItem>
-            <MenuItem onClick={handleMenuClose}>Выйти</MenuItem>
+            <MenuItem onClick={handleMenuClose}>My Profile</MenuItem>
+            <MenuItem onClick={handleMenuClose}>Settings</MenuItem>
+            <Divider />
+            <MenuItem onClick={handleMenuClose} className="text-red-600">Logout</MenuItem>
           </Menu>
         </Box>
       </Toolbar>
