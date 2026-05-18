@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@cloudflare/vite-plugin": "^1.37.1",
     "@emotion/react": "latest",
     "@emotion/styled": "latest",
     "@google/generative-ai": "^0.24.1",
