@@ -3,8 +3,12 @@ import { cors } from 'hono/cors';
 import z from 'zod';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+
+type Bindings = {
+  GEMINI_API_KEY: string;
+};
 // Инициализируем Hono вместо Express
-const app = new Hono();
+const app = new Hono<{ Bindings: Bindings }>();
 
 // Включаем CORS (по умолчанию разрешает всё, как и cors() в Express)
 app.use('*', cors());
@@ -77,7 +81,7 @@ app.post('/api/generate-test', async (c) => {
     console.error("❌ Error/Validation failed:", error.message);
     
     if (error instanceof z.ZodError) {
-      return c.json({ error: "AI returned invalid structure", details: error.errors }, 422);
+      return c.json({ error: "AI returned invalid structure", details: error.issues }, 422);
     } else {
       return c.json({ error: "Internal server error", message: error.message }, 500);
     }
