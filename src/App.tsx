@@ -29,7 +29,7 @@ const App: React.FC = () => {
     return plan.sort(() => Math.random() - 0.5); // Перемешиваем
   };
 
-  const fetchQuestionsBatch = async (categoryIds: number[], count: number = 1) => {
+  const fetchQuestionsBatch = async (categoryIds: number[]) => {
     const promises = categoryIds.map(async (catId) => {
       const topics = mockTopics.filter(t => t.categoryId === catId);
       const randomTopic = topics[Math.floor(Math.random() * topics.length)];

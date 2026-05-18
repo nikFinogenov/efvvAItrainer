@@ -1,4 +1,4 @@
-import { Category, Topic, CategoryWithTopics, Question } from '../types/test';
+import { Category, Topic, CategoryWithTopics } from '../types/test';
 
 // --- 1. ТАБЛИЦА КАТЕГОРИЙ ---
 export const mockCategories: Category[] = [
