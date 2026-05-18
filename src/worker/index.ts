@@ -2,13 +2,14 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import z from 'zod';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { env } from "cloudflare:workers";
 
 
-type Bindings = {
-  GEMINI_API_KEY: string;
-};
+// type Bindings = {
+//   GEMINI_API_KEY: string;
+// };
 // Инициализируем Hono вместо Express
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono();
 
 // Включаем CORS (по умолчанию разрешает всё, как и cors() в Express)
 app.use('*', cors());
@@ -35,7 +36,7 @@ app.post('/api/generate-test', async (c) => {
     const { topic, count = 3 } = body;
 
     // Секреты (env) в Cloudflare лежат внутри контекста 'c.env'
-    const apiKey = c.env.GEMINI_API_KEY;
+    const apiKey = env.GEMINI_API_KEY;
     if (!apiKey) {
       return c.json({ error: "GEMINI_API_KEY is not defined in Cloudflare settings" }, 500);
     }
