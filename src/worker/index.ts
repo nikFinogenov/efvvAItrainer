@@ -52,8 +52,7 @@ app.post('/api/generate-test', async (c) => {
     const responseText = result.response.text();
     
     // 1. Очистка от Markdown-мусора
-    const cleanJson = responseText.replace(/```json|
-```/g, "").trim();
+    const cleanJson = responseText.replace(/```json|```/g, "").trim();
     
     // 2. Парсинг
     const rawData = JSON.parse(cleanJson);
