@@ -2,19 +2,15 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import z from 'zod';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { env } from "cloudflare:workers";
 
 
-// type Bindings = {
-//   GEMINI_API_KEY: string;
-// };
-// Инициализируем Hono вместо Express
-const app = new Hono();
+type Bindings = {
+  GEMINI_API_KEY: string;
+};
+const app = new Hono<{ Bindings: Bindings }>();
 
-// Включаем CORS (по умолчанию разрешает всё, как и cors() в Express)
 app.use('*', cors());
 
-// --- СХЕМА ВАЛИДАЦИИ ZOD ---
 const TestSchema = z.array(
   z.object({
     text: z.string().min(5),
@@ -28,20 +24,16 @@ const TestSchema = z.array(
   })
 );
 
-// Эндпоинт POST. В Hono путь пишется как обычно
 app.post('/api/generate-test', async (c) => {
   try {
-    // Получаем body запроса (в Hono это асинхронная операция)
     const body = await c.req.json();
     const { topic, count = 3 } = body;
 
-    // Секреты (env) в Cloudflare лежат внутри контекста 'c.env'
-    const apiKey = env.GEMINI_API_KEY;
+    const apiKey = c.env.GEMINI_API_KEY;
     if (!apiKey) {
       return c.json({ error: "GEMINI_API_KEY is not defined in Cloudflare settings" }, 500);
     }
 
-    // Инициализируем Gemini прямо внутри запроса с актуальным ключом
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
 
@@ -56,16 +48,12 @@ app.post('/api/generate-test', async (c) => {
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
     
-    // 1. Очистка от Markdown-мусора
     const cleanJson = responseText.replace(/```json|```/g, "").trim();
     
-    // 2. Парсинг
     const rawData = JSON.parse(cleanJson);
 
-    // 3. 🛡️ ВАЛИДАЦИЯ ZOD
     const validatedData = TestSchema.parse(rawData);
 
-    // 4. Обогащение данными (ID)
     const questionsWithIds = validatedData.map((q, qIdx) => ({
       ...q,
       id: Date.now() + qIdx,
@@ -75,7 +63,6 @@ app.post('/api/generate-test', async (c) => {
       }))
     }));
 
-    // Возвращаем JSON через встроенный метод Hono
     return c.json(questionsWithIds);
 
   } catch (error: any) {
@@ -89,5 +76,4 @@ app.post('/api/generate-test', async (c) => {
   }
 });
 
-// Экспортируем воркер по стандарту Cloudflare
 export default app;
