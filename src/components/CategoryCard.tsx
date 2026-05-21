@@ -20,7 +20,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onSelectMo
             <SchoolIcon />
           </Box>
           <Box>
-            <Typography variant="h6" className="font-bold text-gray-800 leading-snug">
+            <Typography variant="h6" className="font-bold leading-snug">
               {category.title}
             </Typography>
             <Typography variant="caption" className="text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-md">
@@ -32,7 +32,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onSelectMo
         <Divider className="my-2 opacity-50" />
 
         {/* СПИСОК ТОПИКОВ (ЧИПСЫ) */}
-        <Typography variant="subtitle2" className="text-gray-400 font-bold uppercase tracking-wider text-[11px] mb-2 mt-2">
+        <Typography variant="subtitle2" className="font-bold uppercase tracking-wider text-[11px] mb-2 mt-2">
           Тренажер по топіках:
         </Typography>
         

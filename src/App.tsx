@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, Box, CssBaseline, CircularProgress, Typography } from '@mui/material';
+import { Container, Box, CircularProgress, Typography } from '@mui/material';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { CategoryList } from './components/CategoryList';
@@ -100,8 +100,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <Box className="flex flex-col min-h-screen bg-gray-50">
-      <CssBaseline />
+    <Box className="flex flex-col min-h-screen">
       <Header onHomeClick={handleGoHome} />
       <Container component="main" className="grow py-10">
         {isGenerating ? (

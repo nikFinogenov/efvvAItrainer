@@ -65,10 +65,10 @@ export const CategoryList: React.FC<CategoryListProps> = ({ onSelectMode }) => {
             </Paper>
 
             {/* СЕКЦИЯ КАТЕГОРИЙ */}
-            <Typography variant="h4" className="font-bold mb-2 text-gray-800">
+            <Typography variant="h4" className="font-bold mb-2">
                 Категорії знань
             </Typography>
-            <Typography variant="body1" className="text-gray-500 mb-8">
+            <Typography variant="body1" className="mb-8">
                 Виберіть конкретний розділ для глибокого опрацювання топиків у безкінечному режимі
             </Typography>
 
