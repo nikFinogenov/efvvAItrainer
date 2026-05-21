@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Button, Box, Divider, Collapse, Alert, CircularProgress } from '@mui/material';
 import { Question, Mode } from '../types/test';
+import { t } from '../utils/translations';
+import { useSettings } from '../context/AppContext';
 
 interface TestScreenProps {
   questions: Question[];
@@ -22,6 +24,8 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
   const labels = ['А', 'Б', 'В', 'Г'];
   const selectedOptionId = userAnswers[currentIndex] ?? null;
   const isRevealed = revealedIndices.has(currentIndex);
+
+  const { lang } = useSettings();
 
   // Подгрузка контента, когда до конца массива осталось 3 вопроса
   useEffect(() => {
@@ -58,12 +62,12 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
     const score = questions.reduce((acc, q, idx) => {
       const correctOption = q.options.find(o => o.isCorrect);
       const isCorrect = userAnswers[idx] === correctOption?.id;
-      
+
       // Если ответ совпал с правильным — даем балл (даже если он нажал "Показать ответ").
       // Если ответ не выбран (null/undefined) или выбран неверно — балл не добавляется.
       return isCorrect ? acc + 1 : acc;
     }, 0);
-    
+
     setIsFinished(true);
     onTestEnd(score);
   };
@@ -78,7 +82,7 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
 
   return (
     <Box className="max-w-4xl mx-auto select-none">
-      
+
       {/* ПАГИНАЦИЯ (Только для Full Test) */}
       {isFullTest && (
         <Box className="flex flex-wrap gap-1.5 mb-6">
@@ -86,23 +90,23 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
             const q = questions[idx];
             const answered = userAnswers[idx] !== undefined && userAnswers[idx] !== null;
             const revealed = revealedIndices.has(idx);
-            
+
             let style = "border-gray-300 text-gray-400";
-            
+
             // ✅ Динамический цвет квадратика на основе твоего нового правила
             if (q && (isFinished || revealed)) {
               const correctId = q.options.find(o => o.isCorrect)?.id;
               const isCorrect = userAnswers[idx] === correctId;
-              style = isCorrect 
-                ? "bg-green-500 border-green-500 text-white" 
+              style = isCorrect
+                ? "bg-green-500 border-green-500 text-white"
                 : "bg-red-500 border-red-500 text-white";
             } else if (answered) {
               style = "border-gray-800 text-gray-800 font-bold";
             }
-            
+
             return (
-              <Box 
-                key={idx} 
+              <Box
+                key={idx}
                 onClick={() => idx < questions.length && setCurrentIndex(idx)}
                 className={`w-8 h-8 flex items-center justify-center border text-xs font-bold cursor-pointer rounded-sm ${style} ${currentIndex === idx ? 'ring-2 ring-yellow-400 border-white' : ''}`}
               >
@@ -166,22 +170,22 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
 
         {/* Панель кнопок */}
         <Box className="flex justify-between items-center">
-          <Button onClick={onExit} className="text-gray-400 capitalize">Вийти</Button>
+          <Button onClick={onExit} className="text-gray-400 capitalize">{t[lang].exitBtn}</Button>
           <Box className="flex gap-3">
             {(isRevealed || isFinished) && (
               <Button variant="outlined" className="rounded-xl border-blue-600 text-blue-600" onClick={() => setShowExplanation(!showExplanation)}>
-                {showExplanation ? 'Приховати' : 'Пояснити'}
+                {showExplanation ? t[lang].hideExplainBtn : t[lang].explainBtn}
               </Button>
             )}
             {!isFinished && !isRevealed && (
               <Button variant="outlined" className="rounded-xl border-blue-600 text-blue-600" onClick={() => setRevealedIndices(prev => new Set(prev).add(currentIndex))}>
-                Показати відповідь
+                {t[lang].showAnswerBtn}
               </Button>
             )}
             <Button variant="contained" disabled={selectedOptionId === null && !isRevealed}
               className={`py-3 px-10 rounded-xl shadow-none capitalize ${isRevealed || isFinished ? 'bg-[#4caf50]' : 'bg-[#c62828]'}`}
               onClick={handleNext}>
-              {isFullTest ? (currentIndex === 139 ? 'Завершити' : 'Наступне') : (isRevealed ? 'Наступне' : 'Відповісти')}
+              {isFullTest ? (currentIndex === 139 ? t[lang].finishBtn : t[lang].nextBtn) : (isRevealed ? t[lang].nextBtn : t[lang].answerBtn)}
             </Button>
           </Box>
         </Box>

@@ -8,6 +8,8 @@ import { ResultScreen } from './components/ResultScreen';
 import { Question, Mode } from './types/test';
 import { testApi } from './services/api';
 import { mockCategories, mockTopics } from './data/mockData';
+import { t } from './utils/translations';
+import { useSettings } from './context/AppContext';
 
 const App: React.FC = () => {
   const [currentSession, setCurrentSession] = useState<{ mode: Mode; targetId: number | null } | null>(null);
@@ -16,7 +18,7 @@ const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [finalScore, setFinalScore] = useState<number | null>(null);
-
+  const { lang } = useSettings();
   // --- ЛОГИКА ТАКСОНОМИИ ---
 
   const generateTestPlan = () => {
@@ -92,7 +94,7 @@ const App: React.FC = () => {
 
   const handleGoHome = () => {
     if (currentSession && finalScore === null) {
-      if (!window.confirm("Прогрес буде втрачено. Вийти?")) return;
+      if (!window.confirm(t[lang].confirmExit)) return;
     }
     setCurrentSession(null);
     setFinalScore(null);
@@ -106,7 +108,7 @@ const App: React.FC = () => {
         {isGenerating ? (
           <Box className="flex flex-col items-center mt-20">
             <CircularProgress size={80} />
-            <Typography variant="h5" className="mt-6 animate-pulse">Генерація тесту за таксономією...</Typography>
+            <Typography variant="h5" className="mt-6 animate-pulse">{t[lang].aiLoading}</Typography>
           </Box>
         ) : finalScore !== null ? (
           <ResultScreen score={finalScore} totalQuestions={activeQuestions.length} onRestart={handleGoHome} />

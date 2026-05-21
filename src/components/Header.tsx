@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { AppBar, Toolbar, Typography, IconButton, Menu, MenuItem, Box, Divider } from '@mui/material';
 import AccountCircle from '@mui/icons-material/AccountCircle';
+import { t } from '../utils/translations';
+import { useSettings } from '../context/AppContext';
+
 
 interface HeaderProps {
   onHomeClick: () => void; // Проп для возврата домой
@@ -16,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
   const handleMenuClose = () => {
     setAnchorEl(null);
   };
+  const { lang } = useSettings();
 
   return (
     <AppBar position="static" className="bg-[#1976d2] shadow-md">
@@ -27,7 +31,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
           onClick={onHomeClick}
           className="grow cursor-pointer select-none font-bold tracking-[0.5px] hover:opacity-80 transition-opacity"
         >
-          EFVV Master
+          {t[lang].title}
         </Typography>
 
         <Box>

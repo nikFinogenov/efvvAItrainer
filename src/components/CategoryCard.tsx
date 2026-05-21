@@ -2,6 +2,8 @@ import React from 'react';
 import { Card, CardContent, Typography, Button, Box, Chip, Divider } from '@mui/material';
 import { CategoryWithTopics, Mode } from '../types/test';
 import SchoolIcon from '@mui/icons-material/School';
+import { t } from '../utils/translations';
+import { useSettings } from '../context/AppContext';
 
 interface CategoryCardProps {
   category: CategoryWithTopics;
@@ -9,8 +11,11 @@ interface CategoryCardProps {
 }
 
 export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onSelectMode }) => {
+
+  const { lang } = useSettings();
+
   return (
-    <Card 
+    <Card
       className="w-full max-w-sm min-h-95 flex flex-col justify-between rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 bg-white group"
     >
       <CardContent className="grow p-6 flex flex-col">
@@ -24,7 +29,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onSelectMo
               {category.title}
             </Typography>
             <Typography variant="caption" className="text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-md">
-              Вага в іспиті: {category.description}%
+              {t[lang].weight} {category.description}%
             </Typography>
           </Box>
         </Box>
@@ -33,17 +38,17 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onSelectMo
 
         {/* СПИСОК ТОПИКОВ (ЧИПСЫ) */}
         <Typography variant="subtitle2" className="font-bold uppercase tracking-wider text-[11px] mb-2 mt-2">
-          Тренажер по топіках:
+          {t[lang].topicsSection}
         </Typography>
-        
+
         <Box className="flex flex-wrap gap-1.5 overflow-y-auto max-h-35 pr-1 grow content-start">
           {category.topics.map((topic) => (
-            <Chip 
-              key={topic.id} 
-              label={topic.title} 
-              clickable 
+            <Chip
+              key={topic.id}
+              label={topic.title}
+              clickable
               // ✅ Передаем TopicInfinite вместо старого 'infinite'/'test'
-              onClick={() => onSelectMode('TopicInfinite', topic.id)} 
+              onClick={() => onSelectMode('TopicInfinite', topic.id)}
               color="primary"
               variant="outlined"
               size="small"
@@ -55,15 +60,15 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, onSelectMo
 
       {/* КНОПКА КАТЕГОРИИ */}
       <Box className="p-6 pt-0">
-        <Button 
-          variant="contained" 
+        <Button
+          variant="contained"
           fullWidth
           size="large"
           // ✅ Передаем CategoryInfinite для тренировки по всей категории
           onClick={() => onSelectMode('CategoryInfinite', category.id)}
           className="bg-gray-900 hover:bg-blue-600 text-white font-bold py-3 rounded-xl shadow-none capitalize transition-all duration-300"
         >
-          Тренажер категорії
+          {t[lang].trainerBtn}
         </Button>
       </Box>
     </Card>

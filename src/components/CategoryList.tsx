@@ -5,6 +5,9 @@ import { CategoryWithTopics, Mode } from '../types/test';
 import { mockCategories, mockTopics } from '../data/mockData';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import AllInclusiveIcon from '@mui/icons-material/AllInclusive';
+import { t } from '../utils/translations';
+import { useSettings } from '../context/AppContext';
+
 
 interface CategoryListProps {
     onSelectMode: (mode: Mode, targetId: number | null) => void;
@@ -16,7 +19,7 @@ export const CategoryList: React.FC<CategoryListProps> = ({ onSelectMode }) => {
         ...cat,
         topics: mockTopics.filter(t => t.categoryId === cat.id)
     }));
-
+    const { lang } = useSettings();
     return (
         <Box>
             {/* СЕКЦИЯ ГЛОБАЛЬНЫХ РЕЖИМОВ */}
@@ -27,18 +30,18 @@ export const CategoryList: React.FC<CategoryListProps> = ({ onSelectMode }) => {
                 <Grid container spacing={4} className="items-center">
                     <Grid size={{
                         xs: 12,
-                        sm:6,
+                        sm: 6,
                         md: 4,
                         lg: 3
                     }}>
                         <Typography variant="h4" className="font-bold mb-2">
-                            Готові до повного іспиту?
+                            {t[lang].examTitle}
                         </Typography>
                         <Typography variant="body1" className="opacity-90">
-                            Запустіть комплексне тестування на 140 питань, сформоване згідно з державною таксономією та вагою кожної категорії.
+                            {t[lang].examDesc}
                         </Typography>
                     </Grid>
-                    <Grid className="flex gap-3 justify-end" size = {{ 
+                    <Grid className="flex gap-3 justify-end" size={{
                         xs: 12,
                         md: 5
                     }}>
@@ -49,7 +52,7 @@ export const CategoryList: React.FC<CategoryListProps> = ({ onSelectMode }) => {
                             className="bg-white text-blue-700 hover:bg-blue-50 font-bold py-3 px-6 rounded-xl shadow-lg"
                             onClick={() => onSelectMode('FullTest', null)}
                         >
-                            Скласти іспит (140)
+                            {t[lang].startExam}
                         </Button>
                         <Button
                             variant="outlined"
@@ -58,7 +61,7 @@ export const CategoryList: React.FC<CategoryListProps> = ({ onSelectMode }) => {
                             className="border-white text-white hover:bg-white/10 font-bold py-3 px-6 rounded-xl"
                             onClick={() => onSelectMode('FullInfinite', null)}
                         >
-                            Мікс (Безкінечно)
+                            {t[lang].mixInfinite}
                         </Button>
                     </Grid>
                 </Grid>
@@ -66,21 +69,21 @@ export const CategoryList: React.FC<CategoryListProps> = ({ onSelectMode }) => {
 
             {/* СЕКЦИЯ КАТЕГОРИЙ */}
             <Typography variant="h4" className="font-bold mb-2">
-                Категорії знань
+                {t[lang].categoriesTitle}
             </Typography>
             <Typography variant="body1" className="mb-8">
-                Виберіть конкретний розділ для глибокого опрацювання топиків у безкінечному режимі
+                {t[lang].categoriesDesc}
             </Typography>
 
             <Grid container spacing={4}>
                 {categoriesWithTopics.map((category) => (
-                    <Grid key={category.id} 
-                    size={{
-                        xs: 12, // 1 в ряд на мобилках
-                        sm: 6,  // 2 в ряд на планшетах
-                        md: 4,  // 3 в ряд на ноутах
-                        lg: 3   // 4 в ряд на больших экранах
-                    }}>
+                    <Grid key={category.id}
+                        size={{
+                            xs: 12, // 1 в ряд на мобилках
+                            sm: 6,  // 2 в ряд на планшетах
+                            md: 4,  // 3 в ряд на ноутах
+                            lg: 3   // 4 в ряд на больших экранах
+                        }}>
                         <CategoryCard
                             category={category}
                             onSelectMode={(mode, targetId) => onSelectMode(mode, targetId)}
