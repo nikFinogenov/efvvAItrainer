@@ -14,12 +14,14 @@ export const t = {
     explainBtn: "Пояснити",
     hideExplainBtn: "Приховати",
     showAnswerBtn: "Показати відповідь",
+    selectAnswer: "Позначте відповідь:",
     nextBtn: "Наступне",
     answerBtn: "Відповісти",
     finishBtn: "Завершити",
     aiLoading: "Формування таксономії тесту...",
     aiQuestionLoading: "ШІ готує завдання",
     confirmExit: "Прогрес буде втрачено. Вийти?",
+    options: ['А', 'Б', 'В', 'Г']
   },
   en: {
     title: "EFVV Master",
@@ -36,11 +38,13 @@ export const t = {
     explainBtn: "Explain",
     hideExplainBtn: "Hide",
     showAnswerBtn: "Show Answer",
+    selectAnswer: "Select answer:",
     nextBtn: "Next",
     answerBtn: "Answer",
     finishBtn: "Finish",
     aiLoading: "Generating test taxonomy...",
     aiQuestionLoading: "AI is preparing task",
     confirmExit: "Progress will be lost. Exit?",
+    options: ['A', 'B', 'C', 'D']
   }
 };

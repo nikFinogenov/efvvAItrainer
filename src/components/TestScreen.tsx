@@ -18,14 +18,15 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
   const [revealedIndices, setRevealedIndices] = useState<Set<number>>(new Set());
   const [showExplanation, setShowExplanation] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const { lang } = useSettings();
 
   const isFullTest = mode === 'FullTest';
   const currentQuestion = questions[currentIndex];
-  const labels = ['А', 'Б', 'В', 'Г'];
+  const labels = t[lang].options;
   const selectedOptionId = userAnswers[currentIndex] ?? null;
   const isRevealed = revealedIndices.has(currentIndex);
 
-  const { lang } = useSettings();
+
 
   // Подгрузка контента, когда до конца массива осталось 3 вопроса
   useEffect(() => {
@@ -118,8 +119,8 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
       )}
 
       {/* КАРТОЧКА ВОПРОСА */}
-      <Box className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-        <Typography variant="h5" className="mb-8 text-gray-800 leading-relaxed font-medium">
+      <Box className="p-8 rounded-2xl shadow-sm border border-gray-100">
+        <Typography variant="h5" className="mb-8 leading-relaxed font-medium">
           {currentQuestion.text}
         </Typography>
 
@@ -139,7 +140,7 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
 
         {/* СЕТКА ВЫБОРА (ОТВЕТОК) */}
         <Box className="mb-10">
-          <Typography variant="body2" className="mb-4 text-gray-400 font-bold uppercase">Позначте відповідь:</Typography>
+          <Typography variant="body2" className="mb-4 font-bold uppercase">{t[lang].selectAnswer}</Typography>
           <Box className="flex gap-4">
             {currentQuestion.options.map((opt, i) => {
               const selected = selectedOptionId === opt.id;
