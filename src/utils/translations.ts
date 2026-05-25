@@ -23,7 +23,8 @@ export const t = {
     confirmExit: "Прогрес буде втрачено. Вийти?",
     options: ['А', 'Б', 'В', 'Г'],
     confirmFinishEarly: "Завершити тест достроково?",
-    questionLabel: "Питання"
+    questionLabel: "Питання",
+    loading: "Завантаження"
   },
   en: {
     title: "EFVV Master",
@@ -49,6 +50,7 @@ export const t = {
     confirmExit: "Progress will be lost. Exit?",
     options: ['A', 'B', 'C', 'D'],
     confirmFinishEarly: "Finish now?",
-    questionLabel: "Question"
+    questionLabel: "Question",
+    loading: "Loading"
   }
 };

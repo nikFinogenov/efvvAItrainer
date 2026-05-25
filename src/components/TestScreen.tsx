@@ -3,7 +3,7 @@ import { Typography, Button, Box, Divider, Collapse, Alert, CircularProgress } f
 import { Question, Mode } from '../types/test';
 import { t } from '../utils/translations';
 import { useSettings } from '../context/AppContext';
-import AddIcon from '@mui/icons-material/Add'; // Если используешь иконки, или просто текстом
+// import AddIcon from '@mui/icons-material/Add'; // Если используешь иконки, или просто текстом
 
 interface TestScreenProps {
   questions: (Question | undefined)[];
@@ -153,7 +153,7 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
         <Box className="p-12 rounded-2xl border border-gray-100 flex flex-col items-center justify-center h-80 gap-4 shadow-sm bg-white">
           <CircularProgress size={40} />
           <Typography variant="body2" className="text-gray-400 animate-pulse">
-            {t[lang].loading || 'Загрузка вопроса...'}
+            {t[lang].loading}
           </Typography>
         </Box>
       ) : (
@@ -216,7 +216,7 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
               </Button>
               {isFullTest && !isFinished && (
                 <Button onClick={finishTest} color="error" className="capitalize text-red-500">
-                  {t[lang].finishTestEarlyBtn || 'Завершить тест'}
+                  {t[lang].finishBtn}
                 </Button>
               )}
             </Box>
