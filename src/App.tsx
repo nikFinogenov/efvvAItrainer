@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Container, Box, CircularProgress, Typography } from '@mui/material';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
@@ -13,44 +13,74 @@ import { useSettings } from './context/AppContext';
 
 const App: React.FC = () => {
   const [currentSession, setCurrentSession] = useState<{ mode: Mode; targetId: number | null } | null>(null);
-  const [activeQuestions, setActiveQuestions] = useState<Question[]>([]);
-  const [questionsQueue, setQuestionsQueue] = useState<number[]>([]); // Очередь ID категорий для плана
+  const [activeQuestions, setActiveQuestions] = useState<(Question | undefined)[]>([]);
+  
+  // Храним план категорий для всех 140 вопросов, чтобы знать, 
+  // какую категорию генерировать для конкретного индекса
+  const testPlanRef = useRef<number[]>([]); 
+  
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const isFetchingMore = useRef(false); 
   const [finalScore, setFinalScore] = useState<number | null>(null);
   const { lang } = useSettings();
-  // --- ЛОГИКА ТАКСОНОМИИ ---
 
   const generateTestPlan = () => {
     let plan: number[] = [];
-    const TOTAL = 10;
+    const TOTAL = 140; 
     mockCategories.forEach(cat => {
       const count = Math.round(TOTAL * (parseInt(cat.description) / 100));
       for (let i = 0; i < count; i++) plan.push(cat.id);
     });
-    return plan.sort(() => Math.random() - 0.5); // Перемешиваем
+
+    while (plan.length < 140) {
+      plan.push(mockCategories[0].id);
+    }
+    if (plan.length > 140) {
+      plan = plan.slice(0, 140);
+    }
+
+    return plan.sort(() => Math.random() - 0.5); 
   };
 
-  const fetchQuestionsBatch = async (categoryIds: number[]) => {
-    const promises = categoryIds.map(async (catId) => {
-      const topics = mockTopics.filter(t => t.categoryId === catId);
+  // Изменили сигнатуру: теперь передаем массив объектов с жесткой привязкой к индексу
+  const fetchQuestionsForIndices = async (tasks: { index: number; categoryId: number }[]) => {
+    const promises = tasks.map(async (task) => {
+      const topics = mockTopics.filter(t => t.categoryId === task.categoryId);
       const randomTopic = topics[Math.floor(Math.random() * topics.length)];
-      return testApi.generateQuestions(randomTopic.title, 1);
+      const questions = await testApi.generateQuestions(randomTopic.title, 1);
+      return {
+        index: task.index,
+        question: questions[0] // Достаем один сгенерированный вопрос
+      };
     });
-    const results = await Promise.all(promises);
-    return results.flat();
+    return Promise.all(promises);
   };
 
   const handleSelectMode = async (mode: Mode, targetId: number | null) => {
     setIsGenerating(true);
     setFinalScore(null);
-    let initialQuestions: Question[] = [];
+    let initialQuestions: (Question | undefined)[] = [];
 
     if (mode === 'FullTest') {
       const plan = generateTestPlan();
-      const firstBatch = plan.slice(0, 10);
-      initialQuestions = await fetchQuestionsBatch(firstBatch);
-      setQuestionsQueue(plan.slice(10));
+      testPlanRef.current = plan; // Сохраняем план на все 140 вопросов
+
+      // Создаем пустой каркас
+      initialQuestions = new Array(140).fill(undefined);
+      
+      // Сразу готовим задачи на загрузку первых 10 вопросов согласно плану
+      const firstBatchTasks = plan.slice(0, 10).map((catId, idx) => ({
+        index: idx,
+        categoryId: catId
+      }));
+
+      const fetchedResults = await fetchQuestionsForIndices(firstBatchTasks);
+      
+      // Раскладываем по местам
+      fetchedResults.forEach(res => {
+        if (res.question) initialQuestions[res.index] = res.question;
+      });
+
     } else if (mode === 'TopicInfinite' && targetId) {
       const topic = mockTopics.find(t => t.id === targetId);
       initialQuestions = await testApi.generateQuestions(topic!.title, 5);
@@ -60,7 +90,13 @@ const App: React.FC = () => {
       initialQuestions = await testApi.generateQuestions(randomTopic.title, 5);
     } else if (mode === 'FullInfinite') {
       const firstBatch = [1, 2, 3, 4, 5].map(() => Math.floor(Math.random() * 10) + 1);
-      initialQuestions = await fetchQuestionsBatch(firstBatch);
+      const promises = firstBatch.map(catId => {
+        const topics = mockTopics.filter(t => t.categoryId === catId);
+        const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+        return testApi.generateQuestions(randomTopic.title, 1);
+      });
+      const results = await Promise.all(promises);
+      initialQuestions = results.flat();
     }
 
     setActiveQuestions(initialQuestions);
@@ -68,28 +104,62 @@ const App: React.FC = () => {
     setIsGenerating(false);
   };
 
-  const loadMoreQuestions = async () => {
-    if (isFetchingMore) return;
-    setIsFetchingMore(true);
+  const loadMoreQuestions = async (targetIndex: number) => {
+    if (isFetchingMore.current) return;
+    isFetchingMore.current = true;
 
-    let newBatch: Question[] = [];
-    if (currentSession?.mode === 'FullTest' && questionsQueue.length > 0) {
-      const batch = questionsQueue.slice(0, 5);
-      newBatch = await fetchQuestionsBatch(batch);
-      setQuestionsQueue(prev => prev.slice(5));
-    } else if (currentSession?.mode === 'TopicInfinite') {
-      const topic = mockTopics.find(t => t.id === currentSession.targetId);
-      newBatch = await testApi.generateQuestions(topic!.title, 5);
-    } else if (currentSession?.mode === 'CategoryInfinite' || currentSession?.mode === 'FullInfinite') {
-      const catId = currentSession.mode === 'FullInfinite'
-        ? Math.floor(Math.random() * 10) + 1
-        : currentSession.targetId!;
-      const topics = mockTopics.filter(t => t.categoryId === catId);
-      newBatch = await testApi.generateQuestions(topics[Math.floor(Math.random() * topics.length)].title, 5);
+    if (currentSession?.mode === 'FullTest') {
+      // Нам нужно проверить диапазон от текущего кликнутого/активного индекса до +5 вперед
+      const targetEndIndex = Math.min(targetIndex + 5, 139);
+      
+      // Собираем задачи: какой индекс пустует и какая категория ему нужна по плану
+      const tasksToFetch: { index: number; categoryId: number }[] = [];
+      
+      for (let i = targetIndex; i <= targetEndIndex; i++) {
+        if (!activeQuestions[i]) {
+          tasksToFetch.push({
+            index: i,
+            categoryId: testPlanRef.current[i] // Берем категорию строго для этого индекса!
+          });
+        }
+      }
+
+      if (tasksToFetch.length > 0) {
+        try {
+          const newQuestionsResults = await fetchQuestionsForIndices(tasksToFetch);
+
+          setActiveQuestions(prev => {
+            const updated = [...prev];
+            newQuestionsResults.forEach(res => {
+              if (res.question) {
+                updated[res.index] = res.question; // Вставляем строго в свой индекс
+              }
+            });
+            return updated;
+          });
+        } catch (error) {
+          console.error("Ошибка при подгрузке вопросов:", error);
+        }
+      }
+    } else {
+      // Логика бесконечных режимов (простой пуш в конец)
+      let newBatch: Question[] = [];
+      if (currentSession?.mode === 'TopicInfinite') {
+        const topic = mockTopics.find(t => t.id === currentSession.targetId);
+        newBatch = await testApi.generateQuestions(topic!.title, 5);
+      } else if (currentSession?.mode === 'CategoryInfinite' || currentSession?.mode === 'FullInfinite') {
+        const catId = currentSession.mode === 'FullInfinite'
+          ? Math.floor(Math.random() * 10) + 1
+          : currentSession.targetId!;
+        const topics = mockTopics.filter(t => t.categoryId === catId);
+        newBatch = await testApi.generateQuestions(
+          topics[Math.floor(Math.random() * topics.length)].title, 5
+        );
+      }
+      setActiveQuestions(prev => [...prev, ...newBatch]);
     }
 
-    setActiveQuestions(prev => [...prev, ...newBatch]);
-    setIsFetchingMore(false);
+    isFetchingMore.current = false;
   };
 
   const handleGoHome = () => {
@@ -99,6 +169,7 @@ const App: React.FC = () => {
     setCurrentSession(null);
     setFinalScore(null);
     setActiveQuestions([]);
+    testPlanRef.current = [];
   };
 
   return (
@@ -111,7 +182,7 @@ const App: React.FC = () => {
             <Typography variant="h5" className="mt-6 animate-pulse">{t[lang].aiLoading}</Typography>
           </Box>
         ) : finalScore !== null ? (
-          <ResultScreen score={finalScore} totalQuestions={activeQuestions.length} onRestart={handleGoHome} />
+          <ResultScreen score={finalScore} totalQuestions={activeQuestions.filter(Boolean).length} onRestart={handleGoHome} />
         ) : currentSession ? (
           <TestScreen
             questions={activeQuestions}

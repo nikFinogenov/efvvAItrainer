@@ -21,7 +21,9 @@ export const t = {
     aiLoading: "Формування таксономії тесту...",
     aiQuestionLoading: "ШІ готує завдання",
     confirmExit: "Прогрес буде втрачено. Вийти?",
-    options: ['А', 'Б', 'В', 'Г']
+    options: ['А', 'Б', 'В', 'Г'],
+    confirmFinishEarly: "Завершити тест достроково?",
+    questionLabel: "Питання"
   },
   en: {
     title: "EFVV Master",
@@ -45,6 +47,8 @@ export const t = {
     aiLoading: "Generating test taxonomy...",
     aiQuestionLoading: "AI is preparing task",
     confirmExit: "Progress will be lost. Exit?",
-    options: ['A', 'B', 'C', 'D']
+    options: ['A', 'B', 'C', 'D'],
+    confirmFinishEarly: "Finish now?",
+    questionLabel: "Question"
   }
 };
