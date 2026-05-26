@@ -14,11 +14,9 @@ import { useSettings } from './context/AppContext';
 const App: React.FC = () => {
   const [currentSession, setCurrentSession] = useState<{ mode: Mode; targetId: number | null } | null>(null);
   const [activeQuestions, setActiveQuestions] = useState<(Question | undefined)[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0); // Централизованный индекс
   
-  // Храним план категорий для всех 140 вопросов, чтобы знать, 
-  // какую категорию генерировать для конкретного индекса
   const testPlanRef = useRef<number[]>([]); 
-  
   const [isGenerating, setIsGenerating] = useState(false);
   const isFetchingMore = useRef(false); 
   const [finalScore, setFinalScore] = useState<number | null>(null);
@@ -32,26 +30,18 @@ const App: React.FC = () => {
       for (let i = 0; i < count; i++) plan.push(cat.id);
     });
 
-    while (plan.length < 140) {
-      plan.push(mockCategories[0].id);
-    }
-    if (plan.length > 140) {
-      plan = plan.slice(0, 140);
-    }
+    while (plan.length < 140) plan.push(mockCategories[0].id);
+    if (plan.length > 140) plan = plan.slice(0, 140);
 
     return plan.sort(() => Math.random() - 0.5); 
   };
 
-  // Изменили сигнатуру: теперь передаем массив объектов с жесткой привязкой к индексу
   const fetchQuestionsForIndices = async (tasks: { index: number; categoryId: number }[]) => {
     const promises = tasks.map(async (task) => {
       const topics = mockTopics.filter(t => t.categoryId === task.categoryId);
       const randomTopic = topics[Math.floor(Math.random() * topics.length)];
       const questions = await testApi.generateQuestions(randomTopic.title, 1);
-      return {
-        index: task.index,
-        question: questions[0] // Достаем один сгенерированный вопрос
-      };
+      return { index: task.index, question: questions[0] };
     });
     return Promise.all(promises);
   };
@@ -59,44 +49,39 @@ const App: React.FC = () => {
   const handleSelectMode = async (mode: Mode, targetId: number | null) => {
     setIsGenerating(true);
     setFinalScore(null);
+    setCurrentIndex(0); // Сброс индекса при старте любого режима
     let initialQuestions: (Question | undefined)[] = [];
 
     if (mode === 'FullTest') {
       const plan = generateTestPlan();
-      testPlanRef.current = plan; // Сохраняем план на все 140 вопросов
-
-      // Создаем пустой каркас
+      testPlanRef.current = plan;
       initialQuestions = new Array(140).fill(undefined);
       
-      // Сразу готовим задачи на загрузку первых 10 вопросов согласно плану
-      const firstBatchTasks = plan.slice(0, 10).map((catId, idx) => ({
-        index: idx,
-        categoryId: catId
-      }));
-
+      const firstBatchTasks = plan.slice(0, 10).map((catId, idx) => ({ index: idx, categoryId: catId }));
       const fetchedResults = await fetchQuestionsForIndices(firstBatchTasks);
       
-      // Раскладываем по местам
       fetchedResults.forEach(res => {
         if (res.question) initialQuestions[res.index] = res.question;
       });
-
-    } else if (mode === 'TopicInfinite' && targetId) {
-      const topic = mockTopics.find(t => t.id === targetId);
-      initialQuestions = await testApi.generateQuestions(topic!.title, 5);
-    } else if (mode === 'CategoryInfinite' && targetId) {
-      const catTopics = mockTopics.filter(t => t.categoryId === targetId);
-      const randomTopic = catTopics[Math.floor(Math.random() * catTopics.length)];
-      initialQuestions = await testApi.generateQuestions(randomTopic.title, 5);
-    } else if (mode === 'FullInfinite') {
-      const firstBatch = [1, 2, 3, 4, 5].map(() => Math.floor(Math.random() * 10) + 1);
-      const promises = firstBatch.map(catId => {
-        const topics = mockTopics.filter(t => t.categoryId === catId);
-        const randomTopic = topics[Math.floor(Math.random() * topics.length)];
-        return testApi.generateQuestions(randomTopic.title, 1);
-      });
-      const results = await Promise.all(promises);
-      initialQuestions = results.flat();
+    } else {
+      // Для бесконечных режимов сразу генерируем пачку из 5 вопросов
+      if (mode === 'TopicInfinite' && targetId) {
+        const topic = mockTopics.find(t => t.id === targetId);
+        initialQuestions = await testApi.generateQuestions(topic!.title, 5);
+      } else if (mode === 'CategoryInfinite' && targetId) {
+        const catTopics = mockTopics.filter(t => t.categoryId === targetId);
+        const randomTopic = catTopics[Math.floor(Math.random() * catTopics.length)];
+        initialQuestions = await testApi.generateQuestions(randomTopic.title, 5);
+      } else if (mode === 'FullInfinite') {
+        const firstBatch = [1, 2, 3, 4, 5].map(() => Math.floor(Math.random() * 10) + 1);
+        const promises = firstBatch.map(catId => {
+          const topics = mockTopics.filter(t => t.categoryId === catId);
+          const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+          return testApi.generateQuestions(randomTopic.title, 1);
+        });
+        const results = await Promise.all(promises);
+        initialQuestions = results.flat();
+      }
     }
 
     setActiveQuestions(initialQuestions);
@@ -109,54 +94,56 @@ const App: React.FC = () => {
     isFetchingMore.current = true;
 
     if (currentSession?.mode === 'FullTest') {
-      // Нам нужно проверить диапазон от текущего кликнутого/активного индекса до +5 вперед
       const targetEndIndex = Math.min(targetIndex + 5, 139);
-      
-      // Собираем задачи: какой индекс пустует и какая категория ему нужна по плану
       const tasksToFetch: { index: number; categoryId: number }[] = [];
       
       for (let i = targetIndex; i <= targetEndIndex; i++) {
         if (!activeQuestions[i]) {
-          tasksToFetch.push({
-            index: i,
-            categoryId: testPlanRef.current[i] // Берем категорию строго для этого индекса!
-          });
+          tasksToFetch.push({ index: i, categoryId: testPlanRef.current[i] });
         }
       }
 
       if (tasksToFetch.length > 0) {
         try {
           const newQuestionsResults = await fetchQuestionsForIndices(tasksToFetch);
-
           setActiveQuestions(prev => {
             const updated = [...prev];
             newQuestionsResults.forEach(res => {
-              if (res.question) {
-                updated[res.index] = res.question; // Вставляем строго в свой индекс
-              }
+              if (res.question) updated[res.index] = res.question;
             });
             return updated;
           });
         } catch (error) {
-          console.error("Ошибка при подгрузке вопросов:", error);
+          console.error("Ошибка генерации:", error);
         }
       }
     } else {
-      // Логика бесконечных режимов (простой пуш в конец)
-      let newBatch: Question[] = [];
-      if (currentSession?.mode === 'TopicInfinite') {
-        const topic = mockTopics.find(t => t.id === currentSession.targetId);
-        newBatch = await testApi.generateQuestions(topic!.title, 5);
-      } else if (currentSession?.mode === 'CategoryInfinite' || currentSession?.mode === 'FullInfinite') {
-        const catId = currentSession.mode === 'FullInfinite'
-          ? Math.floor(Math.random() * 10) + 1
-          : currentSession.targetId!;
-        const topics = mockTopics.filter(t => t.categoryId === catId);
-        newBatch = await testApi.generateQuestions(
-          topics[Math.floor(Math.random() * topics.length)].title, 5
-        );
+      // БЕСКОНЕЧНЫЙ РЕЖИМ
+      try {
+        let newBatch: Question[] = [];
+        if (currentSession?.mode === 'TopicInfinite') {
+          const topic = mockTopics.find(t => t.id === currentSession.targetId);
+          newBatch = await testApi.generateQuestions(topic!.title, 5);
+        } else if (currentSession?.mode === 'CategoryInfinite' || currentSession?.mode === 'FullInfinite') {
+          const catId = currentSession.mode === 'FullInfinite'
+            ? Math.floor(Math.random() * 10) + 1
+            : currentSession.targetId!;
+          const topics = mockTopics.filter(t => t.categoryId === catId);
+          newBatch = await testApi.generateQuestions(topics[Math.floor(Math.random() * topics.length)].title, 5);
+        }
+
+        setActiveQuestions(prev => {
+          if (prev.length >= 10) {
+            // Отрезаем первые 5 старых вопросов, сдвигая буфер
+            // И одновременно корректируем индекс в меньшую сторону
+            setCurrentIndex(oldIndex => Math.max(0, oldIndex - 5));
+            return [...prev.slice(5), ...newBatch];
+          }
+          return [...prev, ...newBatch];
+        });
+      } catch (error) {
+        console.error("Ошибка бесконечной генерации:", error);
       }
-      setActiveQuestions(prev => [...prev, ...newBatch]);
     }
 
     isFetchingMore.current = false;
@@ -187,6 +174,8 @@ const App: React.FC = () => {
           <TestScreen
             questions={activeQuestions}
             mode={currentSession.mode}
+            currentIndex={currentIndex}
+            setCurrentIndex={setCurrentIndex}
             onTestEnd={setFinalScore}
             onExit={handleGoHome}
             onNeedMore={loadMoreQuestions}

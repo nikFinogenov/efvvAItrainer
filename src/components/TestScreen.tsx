@@ -1,20 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Typography, Button, Box, Divider, Collapse, Alert, CircularProgress } from '@mui/material';
 import { Question, Mode } from '../types/test';
 import { t } from '../utils/translations';
 import { useSettings } from '../context/AppContext';
-// import AddIcon from '@mui/icons-material/Add'; // Если используешь иконки, или просто текстом
 
 interface TestScreenProps {
   questions: (Question | undefined)[];
   mode: Mode;
+  currentIndex: number;
+  setCurrentIndex: React.Dispatch<React.SetStateAction<number>>;
   onTestEnd: (score: number) => void;
   onExit: () => void;
   onNeedMore: (targetIndex: number) => void;
 }
 
-export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestEnd, onExit, onNeedMore }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
+export const TestScreen: React.FC<TestScreenProps> = ({ 
+  questions, 
+  mode, 
+  currentIndex,
+  setCurrentIndex,
+  onTestEnd, 
+  onExit, 
+  onNeedMore 
+}) => {
   const [userAnswers, setUserAnswers] = useState<Record<number, number | null>>({});
   const [revealedIndices, setRevealedIndices] = useState<Set<number>>(new Set());
   const [showExplanation, setShowExplanation] = useState(false);
@@ -27,17 +35,23 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
   const selectedOptionId = userAnswers[currentIndex] ?? null;
   const isRevealed = revealedIndices.has(currentIndex);
 
-  // Автоматическая фоновая подгрузка при приближении к "пустоте"
+  // Автоматическая подгрузка
   useEffect(() => {
-    if (isFullTest && !isFinished) {
-      const currentMissing = !currentQuestion;
-      const nextMissing = currentIndex + 3 < 140 && !questions[currentIndex + 3];
-
-      if ((currentMissing || nextMissing) && currentIndex < 140) {
-        onNeedMore(currentIndex);
+    if (!isFinished) {
+      if (isFullTest) {
+        const currentMissing = !currentQuestion;
+        const nextMissing = currentIndex + 3 < 140 && !questions[currentIndex + 3];
+        if ((currentMissing || nextMissing) && currentIndex < 140) {
+          onNeedMore(currentIndex);
+        }
+      } else {
+        // Бесконечный режим: если до края массива осталось 2 вопроса — пинаем API наперед
+        if (currentIndex >= questions.length - 2) {
+          onNeedMore(currentIndex);
+        }
       }
     }
-  }, [currentIndex, questions, isFullTest, isFinished, currentQuestion]);
+  }, [currentIndex, questions.length, isFullTest, isFinished, currentQuestion]);
 
   const handleSelect = (id: number) => {
     if (isRevealed || isFinished) return;
@@ -51,7 +65,18 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
       if (!isRevealed) {
         setRevealedIndices(prev => new Set(prev).add(currentIndex));
       } else {
-        if (currentIndex + 1 < questions.length) setCurrentIndex(prev => prev + 1);
+        const nextIndex = currentIndex + 1;
+
+        if (nextIndex < questions.length) {
+          // Если следующий вопрос существует и он загружен — идем дальше
+          if (questions[nextIndex] !== undefined) {
+            setCurrentIndex(nextIndex);
+          }
+        } else {
+          // Если массив кончился, а API еще грузит данные — сработает лоадер на экране карточки,
+          // индекс не прыгает назад, и как только массив обновится в App.tsx, пользователь увидит новый вопрос.
+          onNeedMore(currentIndex); 
+        }
       }
     } else {
       const nextIndex = currentIndex + 1;
@@ -68,15 +93,11 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
     setCurrentIndex(idx);
   };
 
-  // Функция для ручной подгрузки по кнопке "+5"
   const handleLoadManualBatch = () => {
-    // Находим первый undefined вопрос, начиная от текущего индекса и дальше
     let firstEmptyIndex = currentIndex;
     while (firstEmptyIndex < 140 && questions[firstEmptyIndex] !== undefined) {
       firstEmptyIndex++;
     }
-
-    // Если нашли пустоту в пределах теста, триггерим загрузку для этой зоны
     if (firstEmptyIndex < 140) {
       onNeedMore(firstEmptyIndex);
     }
@@ -94,9 +115,11 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
     onTestEnd(score);
   };
 
+  // Проверка на заблокированность кнопки (если следующий элемент пуст в бесконечном режиме)
+  const isNextButtonDisabled = !isFullTest && isRevealed && (currentIndex + 1 >= questions.length || !questions[currentIndex + 1]);
+
   return (
     <Box className="max-w-4xl mx-auto select-none">
-
       {/* ПАГИНАЦИЯ И КНОПКА РУЧНОЙ ПОДГРУЗКИ */}
       {isFullTest && (
         <Box className="mb-6 space-y-3">
@@ -105,20 +128,16 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
               const q = questions[idx];
               const answered = userAnswers[idx] !== undefined && userAnswers[idx] !== null;
               const revealed = revealedIndices.has(idx);
-
-              let style = "border-gray-200 text-gray-300 bg-gray-50/50"; // Еще не загружен
+              let style = "border-gray-200 text-gray-300 bg-gray-50/50";
 
               if (q) {
-                style = "border-gray-300 text-gray-400 bg-white"; // Загружен
-                
+                style = "border-gray-300 text-gray-400";
                 if (isFinished || revealed) {
                   const correctId = q.options.find(o => o.isCorrect)?.id;
                   const isCorrect = userAnswers[idx] === correctId;
-                  style = isCorrect
-                    ? "bg-green-500 border-green-500 text-white"
-                    : "bg-red-500 border-red-500 text-white";
+                  style = isCorrect ? "bg-green-500 border-green-500 text-white" : "bg-red-500 border-red-500 text-white";
                 } else if (answered) {
-                  style = "border-gray-800 text-gray-800 font-bold bg-white";
+                  style = "border-gray-800 text-gray-800 font-bold";
                 }
               }
 
@@ -133,37 +152,28 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
               );
             })}
           </Box>
-
-          {/* Кнопка параллельной ручной подгрузки */}
           {!isFinished && (
-            <Button 
-              variant="text" 
-              size="small"
-              onClick={handleLoadManualBatch}
-              className="text-blue-600 hover:text-blue-800 text-xs font-bold normal-case p-0 flex items-center gap-1"
-            >
+            <Button variant="text" size="small" onClick={handleLoadManualBatch} className="text-blue-600 hover:text-blue-800 text-xs font-bold normal-case p-0">
               +5 вопросов в сетку
             </Button>
           )}
         </Box>
       )}
 
-      {/* КОНТЕНТНАЯ КАРТОЧКА */}
+      {/* КОНТЕНТНАЯ КАРТОЧКА С ВОПРОСОМ / ЛОАДЕРОМ */}
       {!currentQuestion ? (
-        <Box className="p-12 rounded-2xl border border-gray-100 flex flex-col items-center justify-center h-80 gap-4 shadow-sm bg-white">
+        <Box className="p-12 rounded-2xl border border-gray-100 flex flex-col items-center justify-center h-80 gap-4 shadow-sm">
           <CircularProgress size={40} />
           <Typography variant="body2" className="text-gray-400 animate-pulse">
-            {t[lang].loading}
+            {t[lang].loading || 'Загрузка вопроса...'}
           </Typography>
         </Box>
       ) : (
-        /* Сам вопрос */
         <Box className="p-8 rounded-2xl shadow-sm border border-gray-300">
           <Typography variant="h5" className="mb-8 leading-relaxed font-medium">
             {currentQuestion.text}
           </Typography>
 
-          {/* Варианты ответов */}
           <Box className="space-y-4 mb-10">
             {currentQuestion.options.map((opt, i) => (
               <Box key={opt.id} className="flex items-start gap-4">
@@ -177,7 +187,6 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
             ))}
           </Box>
 
-          {/* СЕТКА ВЫБОРА */}
           <Box className="mb-10">
             <Typography variant="body2" className="mb-4 font-bold uppercase">{t[lang].selectAnswer}</Typography>
             <Box className="flex gap-4">
@@ -199,7 +208,6 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
             </Box>
           </Box>
 
-          {/* Объяснение */}
           <Collapse in={showExplanation}>
             <Alert severity="info" className="mb-8 rounded-xl bg-blue-50 text-blue-900 border-none">
               {currentQuestion.explanation}
@@ -208,7 +216,6 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
 
           <Divider className="mb-8" />
 
-          {/* Панель кнопок */}
           <Box className="flex justify-between items-center">
             <Box className="flex gap-2">
               <Button onClick={onExit} className="text-gray-400 capitalize">
@@ -232,10 +239,19 @@ export const TestScreen: React.FC<TestScreenProps> = ({ questions, mode, onTestE
                   {t[lang].showAnswerBtn}
                 </Button>
               )}
-              <Button variant="contained" disabled={selectedOptionId === null && !isRevealed}
+              <Button 
+                variant="contained" 
+                disabled={(selectedOptionId === null && !isRevealed) || isNextButtonDisabled}
                 className={`py-3 px-10 rounded-xl shadow-none capitalize ${isRevealed || isFinished ? 'bg-[#4caf50]' : 'bg-[#c62828]'}`}
-                onClick={handleNext}>
-                {isFullTest ? (currentIndex === 139 ? t[lang].finishBtn : t[lang].nextBtn) : (isRevealed ? t[lang].nextBtn : t[lang].answerBtn)}
+                onClick={handleNext}
+              >
+                {isNextButtonDisabled ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : isFullTest ? (
+                  currentIndex === 139 ? t[lang].finishBtn : t[lang].nextBtn
+                ) : (
+                  isRevealed ? t[lang].nextBtn : t[lang].answerBtn
+                )}
               </Button>
             </Box>
           </Box>
